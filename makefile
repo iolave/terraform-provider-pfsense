@@ -15,7 +15,7 @@ YAMLLINT_VERSION ?= 0.28.0
 YAMLLINT := $(DOCKER_RUN) -v=$(CURDIR):/code docker.io/pipelinecomponents/yamllint:$(YAMLLINT_VERSION) yamllint
 
 build:
-	go build -v -o ./build/ .
+	go build -v -o ./bin/ .
 
 lint: lint/editorconfig lint/yamllint
 
