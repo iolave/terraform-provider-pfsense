@@ -14,6 +14,9 @@ EDITORCONFIG_CHECKER := $(DOCKER_RUN) -v=$(CURDIR):/check docker.io/mstruebing/e
 YAMLLINT_VERSION ?= 0.28.0
 YAMLLINT := $(DOCKER_RUN) -v=$(CURDIR):/code docker.io/pipelinecomponents/yamllint:$(YAMLLINT_VERSION) yamllint
 
+build:
+	go build -v -o ./build/ .
+
 lint: lint/editorconfig lint/yamllint
 
 lint/editorconfig:
@@ -36,4 +39,4 @@ test/acc:
 docs:
 	go generate ./...
 
-.PHONY: lint lint/editorconfig lint/yamllint install test test/pkg test/acc docs
+.PHONY: lint lint/editorconfig lint/yamllint install test test/pkg test/acc docs build
