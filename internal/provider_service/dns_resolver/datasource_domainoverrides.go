@@ -1,4 +1,4 @@
-package provider
+package dnsresolver
 
 import (
 	"context"
@@ -9,23 +9,24 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	providerutil "github.com/marshallford/terraform-provider-pfsense/internal/provider_util"
 	"github.com/marshallford/terraform-provider-pfsense/pkg/pfsense"
 )
 
 var (
-	_ datasource.DataSource              = &DNSResolverDomainOverridesDataSource{}
-	_ datasource.DataSourceWithConfigure = &DNSResolverDomainOverridesDataSource{}
+	_ datasource.DataSource              = &DomainOverridesDataSource{}
+	_ datasource.DataSourceWithConfigure = &DomainOverridesDataSource{}
 )
 
-func NewDNSResolverDomainOverridesDataSource() datasource.DataSource {
-	return &DNSResolverDomainOverridesDataSource{}
+func NewDomainOverridesDataSource() datasource.DataSource {
+	return &DomainOverridesDataSource{}
 }
 
-type DNSResolverDomainOverridesDataSource struct {
+type DomainOverridesDataSource struct {
 	client *pfsense.Client
 }
 
-type DNSResolverDomainOverridesDataSourceModel struct {
+type DomainOverridesDataSourceModel struct {
 	All types.List `tfsdk:"all"`
 }
 
@@ -63,11 +64,11 @@ func (d *DNSResolverDomainOverrideDataSourceModel) SetFromValue(ctx context.Cont
 	return nil
 }
 
-func (d *DNSResolverDomainOverridesDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+func (d *DomainOverridesDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = fmt.Sprintf("%s_dnsresolver_domainoverrides", req.ProviderTypeName)
 }
 
-func (d *DNSResolverDomainOverridesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *DomainOverridesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description:         "Retrieves all DNS resolver domain overrides. Domains for which the resolver's standard DNS lookup process should be overridden and a different (non-standard) lookup server should be queried instead.",
 		MarkdownDescription: "Retrieves all DNS resolver [domain overrides](https://docs.netgate.com/pfsense/en/latest/services/dns/resolver-domain-overrides.html). Domains for which the resolver's standard DNS lookup process should be overridden and a different (non-standard) lookup server should be queried instead.",
@@ -105,8 +106,8 @@ func (d *DNSResolverDomainOverridesDataSource) Schema(_ context.Context, _ datas
 	}
 }
 
-func (d *DNSResolverDomainOverridesDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	client, ok := configureDataSourceClient(req, resp)
+func (d *DomainOverridesDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	client, ok := providerutil.ConfigureDataSourceClient(req, resp)
 	if !ok {
 		return
 	}
@@ -114,12 +115,12 @@ func (d *DNSResolverDomainOverridesDataSource) Configure(ctx context.Context, re
 	d.client = client
 }
 
-func (d *DNSResolverDomainOverridesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data DNSResolverDomainOverridesDataSourceModel
+func (d *DomainOverridesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data DomainOverridesDataSourceModel
 	var diags diag.Diagnostics
 
 	domainOverrides, err := d.client.GetDNSResolverDomainOverrides(ctx)
-	if addError(&resp.Diagnostics, "Unable to get domain overrides", err) {
+	if providerutil.AddError(&resp.Diagnostics, "Unable to get domain overrides", err) {
 		return
 	}
 

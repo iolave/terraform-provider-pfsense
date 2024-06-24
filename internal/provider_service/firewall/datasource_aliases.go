@@ -1,4 +1,4 @@
-package provider
+package firewall
 
 import (
 	"context"
@@ -9,23 +9,24 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	providerutil "github.com/marshallford/terraform-provider-pfsense/internal/provider_util"
 	"github.com/marshallford/terraform-provider-pfsense/pkg/pfsense"
 )
 
 var (
-	_ datasource.DataSource              = &FirewallAliasesDataSource{}
-	_ datasource.DataSourceWithConfigure = &FirewallAliasesDataSource{}
+	_ datasource.DataSource              = &AliasesDataSource{}
+	_ datasource.DataSourceWithConfigure = &AliasesDataSource{}
 )
 
-func NewFirewallAliasesDataSource() datasource.DataSource {
-	return &FirewallAliasesDataSource{}
+func NewAliasesDataSource() datasource.DataSource {
+	return &AliasesDataSource{}
 }
 
-type FirewallAliasesDataSource struct {
+type AliasesDataSource struct {
 	client *pfsense.Client
 }
 
-type FirewallAliasesDataSourceModel struct {
+type AliasesDataSourceModel struct {
 	IP types.List `tfsdk:"ip"`
 }
 
@@ -86,11 +87,11 @@ func (d *FirewallIPAliasDataSourceModel) SetFromValue(ctx context.Context, ipAli
 	return diags
 }
 
-func (d *FirewallAliasesDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+func (d *AliasesDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = fmt.Sprintf("%s_firewall_aliases", req.ProviderTypeName)
 }
 
-func (d *FirewallAliasesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *AliasesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description:         "Retrieves all firewall aliases. Aliases can be referenced by firewall rules, port forwards, outbound NAT rules, and other places in the firewall.",
 		MarkdownDescription: "Retrieves all firewall [aliases](https://docs.netgate.com/pfsense/en/latest/firewall/aliases.html). Aliases can be referenced by firewall rules, port forwards, outbound NAT rules, and other places in the firewall.",
@@ -135,8 +136,8 @@ func (d *FirewallAliasesDataSource) Schema(_ context.Context, _ datasource.Schem
 	}
 }
 
-func (d *FirewallAliasesDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	client, ok := configureDataSourceClient(req, resp)
+func (d *AliasesDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	client, ok := providerutil.ConfigureDataSourceClient(req, resp)
 	if !ok {
 		return
 	}
@@ -144,12 +145,12 @@ func (d *FirewallAliasesDataSource) Configure(ctx context.Context, req datasourc
 	d.client = client
 }
 
-func (d *FirewallAliasesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data FirewallAliasesDataSourceModel
+func (d *AliasesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data AliasesDataSourceModel
 	var diags diag.Diagnostics
 
 	ipAliases, err := d.client.GetFirewallIPAliases(ctx)
-	if addError(&resp.Diagnostics, "Unable to get IP aliases", err) {
+	if providerutil.AddError(&resp.Diagnostics, "Unable to get IP aliases", err) {
 		return
 	}
 

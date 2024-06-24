@@ -1,4 +1,4 @@
-package provider
+package firewall
 
 import (
 	"context"
@@ -11,29 +11,30 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	providerutil "github.com/marshallford/terraform-provider-pfsense/internal/provider_util"
 	"github.com/marshallford/terraform-provider-pfsense/pkg/pfsense"
 )
 
-var _ resource.Resource = &FirewallFilterReloadResource{}
+var _ resource.Resource = &FilterReloadResource{}
 
-func NewFirewallFilterReloadResource() resource.Resource {
-	return &FirewallFilterReloadResource{}
+func NewFilterReloadResource() resource.Resource {
+	return &FilterReloadResource{}
 }
 
-type FirewallFilterReloadResource struct {
+type FilterReloadResource struct {
 	client *pfsense.Client
 }
 
-type FirewallFilterReloadResourceModel struct {
+type FilterReloadResourceModel struct {
 	ID          types.String `tfsdk:"id"`
 	LastUpdated types.String `tfsdk:"last_updated"`
 }
 
-func (r *FirewallFilterReloadResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *FilterReloadResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = fmt.Sprintf("%s_firewall_filter_reload", req.ProviderTypeName)
 }
 
-func (r *FirewallFilterReloadResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *FilterReloadResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "Reload firewall filter.",
 		Attributes: map[string]schema.Attribute{
@@ -55,8 +56,8 @@ func (r *FirewallFilterReloadResource) Schema(ctx context.Context, req resource.
 	}
 }
 
-func (r *FirewallFilterReloadResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	client, ok := configureResourceClient(req, resp)
+func (r *FilterReloadResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	client, ok := providerutil.ConfigureResourceClient(req, resp)
 	if !ok {
 		return
 	}
@@ -64,8 +65,8 @@ func (r *FirewallFilterReloadResource) Configure(ctx context.Context, req resour
 	r.client = client
 }
 
-func (r *FirewallFilterReloadResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data *FirewallFilterReloadResourceModel
+func (r *FilterReloadResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data *FilterReloadResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
 	if resp.Diagnostics.HasError() {
@@ -73,7 +74,7 @@ func (r *FirewallFilterReloadResource) Create(ctx context.Context, req resource.
 	}
 
 	err := r.client.ReloadFirewallFilter(ctx)
-	if addError(&resp.Diagnostics, "Error reloading firewall filter", err) {
+	if providerutil.AddError(&resp.Diagnostics, "Error reloading firewall filter", err) {
 		return
 	}
 
@@ -83,11 +84,11 @@ func (r *FirewallFilterReloadResource) Create(ctx context.Context, req resource.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *FirewallFilterReloadResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+func (r *FilterReloadResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 }
 
-func (r *FirewallFilterReloadResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (r *FilterReloadResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 }
 
-func (r *FirewallFilterReloadResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (r *FilterReloadResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 }

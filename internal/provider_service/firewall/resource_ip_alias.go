@@ -1,4 +1,4 @@
-package provider
+package firewall
 
 import (
 	"context"
@@ -14,21 +14,22 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	providerutil "github.com/marshallford/terraform-provider-pfsense/internal/provider_util"
 	"github.com/marshallford/terraform-provider-pfsense/pkg/pfsense"
 )
 
-var _ resource.Resource = &FirewallIPAliasResource{}
-var _ resource.ResourceWithImportState = &FirewallIPAliasResource{}
+var _ resource.Resource = &IPAliasResource{}
+var _ resource.ResourceWithImportState = &IPAliasResource{}
 
-func NewFirewallIPAliasResource() resource.Resource {
-	return &FirewallIPAliasResource{}
+func NewIPAliasResource() resource.Resource {
+	return &IPAliasResource{}
 }
 
-type FirewallIPAliasResource struct {
+type IPAliasResource struct {
 	client *pfsense.Client
 }
 
-type FirewallIPAliasResourceModel struct {
+type IPAliasResourceModel struct {
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
 	Type        types.String `tfsdk:"type"`
@@ -48,7 +49,7 @@ func (r FirewallIPAliasEntryResourceModel) GetAttrType() attr.Type {
 	}}
 }
 
-func (r *FirewallIPAliasResourceModel) SetFromValue(ctx context.Context, ipAlias *pfsense.FirewallIPAlias) diag.Diagnostics {
+func (r *IPAliasResourceModel) SetFromValue(ctx context.Context, ipAlias *pfsense.FirewallIPAlias) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	r.Name = types.StringValue(ipAlias.Name)
@@ -76,7 +77,7 @@ func (r *FirewallIPAliasResourceModel) SetFromValue(ctx context.Context, ipAlias
 	return diags
 }
 
-func (r FirewallIPAliasResourceModel) Value(ctx context.Context) (*pfsense.FirewallIPAlias, diag.Diagnostics) {
+func (r IPAliasResourceModel) Value(ctx context.Context) (*pfsense.FirewallIPAlias, diag.Diagnostics) {
 	var ipAlias pfsense.FirewallIPAlias
 	var err error
 	var diags diag.Diagnostics
@@ -150,11 +151,11 @@ func (r FirewallIPAliasResourceModel) Value(ctx context.Context) (*pfsense.Firew
 	return &ipAlias, diags
 }
 
-func (r *FirewallIPAliasResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *IPAliasResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = fmt.Sprintf("%s_firewall_ip_alias", req.ProviderTypeName)
 }
 
-func (r *FirewallIPAliasResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *IPAliasResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description:         "Firewall IP alias, defines a group of hosts or networks. Aliases can be referenced by firewall rules, port forwards, outbound NAT rules, and other places in the firewall.",
 		MarkdownDescription: "Firewall IP [alias](https://docs.netgate.com/pfsense/en/latest/firewall/aliases.html), defines a group of hosts or networks. Aliases can be referenced by firewall rules, port forwards, outbound NAT rules, and other places in the firewall.",
@@ -210,8 +211,8 @@ func (r *FirewallIPAliasResource) Schema(ctx context.Context, req resource.Schem
 	}
 }
 
-func (r *FirewallIPAliasResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	client, ok := configureResourceClient(req, resp)
+func (r *IPAliasResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	client, ok := providerutil.ConfigureResourceClient(req, resp)
 	if !ok {
 		return
 	}
@@ -219,8 +220,8 @@ func (r *FirewallIPAliasResource) Configure(ctx context.Context, req resource.Co
 	r.client = client
 }
 
-func (r *FirewallIPAliasResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data *FirewallIPAliasResourceModel
+func (r *IPAliasResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data *IPAliasResourceModel
 	var diags diag.Diagnostics
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
@@ -235,7 +236,7 @@ func (r *FirewallIPAliasResource) Create(ctx context.Context, req resource.Creat
 	}
 
 	ipAlias, err := r.client.CreateFirewallIPAlias(ctx, *ipAliasReq)
-	if addError(&resp.Diagnostics, "Error creating IP alias", err) {
+	if providerutil.AddError(&resp.Diagnostics, "Error creating IP alias", err) {
 		return
 	}
 
@@ -249,14 +250,14 @@ func (r *FirewallIPAliasResource) Create(ctx context.Context, req resource.Creat
 
 	if data.Apply.ValueBool() {
 		err = r.client.ReloadFirewallFilter(ctx)
-		if addError(&resp.Diagnostics, "Error applying IP alias", err) {
+		if providerutil.AddError(&resp.Diagnostics, "Error applying IP alias", err) {
 			return
 		}
 	}
 }
 
-func (r *FirewallIPAliasResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data *FirewallIPAliasResourceModel
+func (r *IPAliasResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data *IPAliasResourceModel
 	var diags diag.Diagnostics
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
@@ -265,7 +266,7 @@ func (r *FirewallIPAliasResource) Read(ctx context.Context, req resource.ReadReq
 	}
 
 	ipAlias, err := r.client.GetFirewallIPAlias(ctx, data.Name.ValueString())
-	if addError(&resp.Diagnostics, "Error reading IP alias", err) {
+	if providerutil.AddError(&resp.Diagnostics, "Error reading IP alias", err) {
 		return
 	}
 
@@ -278,8 +279,8 @@ func (r *FirewallIPAliasResource) Read(ctx context.Context, req resource.ReadReq
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *FirewallIPAliasResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data *FirewallIPAliasResourceModel
+func (r *IPAliasResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data *IPAliasResourceModel
 	var diags diag.Diagnostics
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
@@ -298,7 +299,7 @@ func (r *FirewallIPAliasResource) Update(ctx context.Context, req resource.Updat
 	}
 
 	ipAlias, err := r.client.UpdateFirewallIPAlias(ctx, *ipAliasReq)
-	if addError(&resp.Diagnostics, "Error updating IP alias", err) {
+	if providerutil.AddError(&resp.Diagnostics, "Error updating IP alias", err) {
 		return
 	}
 
@@ -312,14 +313,14 @@ func (r *FirewallIPAliasResource) Update(ctx context.Context, req resource.Updat
 
 	if data.Apply.ValueBool() {
 		err = r.client.ReloadFirewallFilter(ctx)
-		if addError(&resp.Diagnostics, "Error applying IP alias", err) {
+		if providerutil.AddError(&resp.Diagnostics, "Error applying IP alias", err) {
 			return
 		}
 	}
 }
 
-func (r *FirewallIPAliasResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data *FirewallIPAliasResourceModel
+func (r *IPAliasResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data *IPAliasResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
 	if resp.Diagnostics.HasError() {
@@ -327,7 +328,7 @@ func (r *FirewallIPAliasResource) Delete(ctx context.Context, req resource.Delet
 	}
 
 	err := r.client.DeleteFirewallIPAlias(ctx, data.Name.ValueString())
-	if addError(&resp.Diagnostics, "Error deleting IP alias", err) {
+	if providerutil.AddError(&resp.Diagnostics, "Error deleting IP alias", err) {
 		return
 	}
 
@@ -335,12 +336,12 @@ func (r *FirewallIPAliasResource) Delete(ctx context.Context, req resource.Delet
 
 	if data.Apply.ValueBool() {
 		err = r.client.ReloadFirewallFilter(ctx)
-		if addError(&resp.Diagnostics, "Error applying IP alias", err) {
+		if providerutil.AddError(&resp.Diagnostics, "Error applying IP alias", err) {
 			return
 		}
 	}
 }
 
-func (r *FirewallIPAliasResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *IPAliasResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("name"), req, resp)
 }

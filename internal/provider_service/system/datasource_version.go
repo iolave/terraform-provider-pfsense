@@ -1,4 +1,4 @@
-package provider
+package system
 
 import (
 	"context"
@@ -7,32 +7,33 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	providerutil "github.com/marshallford/terraform-provider-pfsense/internal/provider_util"
 	"github.com/marshallford/terraform-provider-pfsense/pkg/pfsense"
 )
 
 var (
-	_ datasource.DataSource              = &SystemVersionDataSource{}
-	_ datasource.DataSourceWithConfigure = &SystemVersionDataSource{}
+	_ datasource.DataSource              = &VersionDataSource{}
+	_ datasource.DataSourceWithConfigure = &VersionDataSource{}
 )
 
-func NewSystemVersionDataSource() datasource.DataSource {
-	return &SystemVersionDataSource{}
+func NewVersionDataSource() datasource.DataSource {
+	return &VersionDataSource{}
 }
 
-type SystemVersionDataSource struct {
+type VersionDataSource struct {
 	client *pfsense.Client
 }
 
-type SystemVersionDataSourceModel struct {
+type VersionDataSourceModel struct {
 	Current types.String `tfsdk:"current"`
 	Latest  types.String `tfsdk:"latest"`
 }
 
-func (d *SystemVersionDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+func (d *VersionDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = fmt.Sprintf("%s_system_version", req.ProviderTypeName)
 }
 
-func (d *SystemVersionDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *VersionDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "Retrieves current and latest system version.",
 		Attributes: map[string]schema.Attribute{
@@ -48,8 +49,8 @@ func (d *SystemVersionDataSource) Schema(_ context.Context, _ datasource.SchemaR
 	}
 }
 
-func (d *SystemVersionDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	client, ok := configureDataSourceClient(req, resp)
+func (d *VersionDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	client, ok := providerutil.ConfigureDataSourceClient(req, resp)
 	if !ok {
 		return
 	}
@@ -57,11 +58,11 @@ func (d *SystemVersionDataSource) Configure(ctx context.Context, req datasource.
 	d.client = client
 }
 
-func (d *SystemVersionDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data SystemVersionDataSourceModel
+func (d *VersionDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data VersionDataSourceModel
 
 	version, err := d.client.GetSystemVersion(ctx)
-	if addError(&resp.Diagnostics, "Unable to get system version", err) {
+	if providerutil.AddError(&resp.Diagnostics, "Unable to get system version", err) {
 		return
 	}
 

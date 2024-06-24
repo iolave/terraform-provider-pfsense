@@ -6,68 +6,20 @@ import (
 	"net/url"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	dnsresolver "github.com/marshallford/terraform-provider-pfsense/internal/provider_service/dns_resolver"
+	"github.com/marshallford/terraform-provider-pfsense/internal/provider_service/firewall"
+	"github.com/marshallford/terraform-provider-pfsense/internal/provider_service/system"
+	providerutil "github.com/marshallford/terraform-provider-pfsense/internal/provider_util"
 	"github.com/marshallford/terraform-provider-pfsense/pkg/pfsense"
 )
 
-var (
-	_ provider.Provider = &pfSenseProvider{}
-)
-
-func unknownProviderValue(value string) (string, string) {
-	return fmt.Sprintf("Unknown pfSense %s", value),
-		fmt.Sprintf("The provider cannot create the pfSense client as there is an unknown configuration value for the %s. ", value) +
-			"Either target apply the source of the value first, set the value statically in the configuration."
-}
-
-func unexpectedConfigureType(value string, providerData any) (string, string) {
-	return fmt.Sprintf("Unexpected %s Configure Type", value),
-		fmt.Sprintf("Expected *pfsense.Client, got: %T. Please report this issue to the provider developers.", providerData)
-}
-
-func configureDataSourceClient(req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) (*pfsense.Client, bool) {
-	if req.ProviderData == nil {
-		return nil, false
-	}
-
-	client, ok := req.ProviderData.(*pfsense.Client)
-
-	if !ok {
-		summary, detail := unexpectedConfigureType("Data Source", req.ProviderData)
-		resp.Diagnostics.AddError(summary, detail)
-	}
-
-	return client, ok
-}
-
-func configureResourceClient(req resource.ConfigureRequest, resp *resource.ConfigureResponse) (*pfsense.Client, bool) {
-	if req.ProviderData == nil {
-		return nil, false
-	}
-
-	client, ok := req.ProviderData.(*pfsense.Client)
-
-	if !ok {
-		summary, detail := unexpectedConfigureType("Resource", req.ProviderData)
-		resp.Diagnostics.AddError(summary, detail)
-	}
-
-	return client, ok
-}
-
-func addError(diag *diag.Diagnostics, summary string, err error) bool {
-	if err != nil {
-		diag.AddError(summary, fmt.Sprintf("unexpected error: %v", err))
-		return true
-	}
-	return false
-}
+var _ provider.Provider = &pfSenseProvider{}
 
 func New(version string) func() provider.Provider {
 	return func() provider.Provider {
@@ -139,27 +91,27 @@ func (p *pfSenseProvider) Configure(ctx context.Context, req provider.ConfigureR
 	}
 
 	if config.URL.IsUnknown() {
-		summary, detail := unknownProviderValue("URL")
+		summary, detail := providerutil.UnknownProviderValue("URL")
 		resp.Diagnostics.AddAttributeError(path.Root("url"), summary, detail)
 	}
 
 	if config.Username.IsUnknown() {
-		summary, detail := unknownProviderValue("username")
+		summary, detail := providerutil.UnknownProviderValue("username")
 		resp.Diagnostics.AddAttributeError(path.Root("username"), summary, detail)
 	}
 
 	if config.Username.IsUnknown() {
-		summary, detail := unknownProviderValue("password")
+		summary, detail := providerutil.UnknownProviderValue("password")
 		resp.Diagnostics.AddAttributeError(path.Root("password"), summary, detail)
 	}
 
 	if config.TLSSkipVerify.IsUnknown() {
-		summary, detail := unknownProviderValue("tls_skip_verify")
+		summary, detail := providerutil.UnknownProviderValue("tls_skip_verify")
 		resp.Diagnostics.AddAttributeError(path.Root("tls_skip_verify"), summary, detail)
 	}
 
 	if config.MaxAttempts.IsUnknown() {
-		summary, detail := unknownProviderValue("max_attempts")
+		summary, detail := providerutil.UnknownProviderValue("max_attempts")
 		resp.Diagnostics.AddAttributeError(path.Root("max_attempts"), summary, detail)
 	}
 
@@ -228,20 +180,20 @@ func (p *pfSenseProvider) Configure(ctx context.Context, req provider.ConfigureR
 
 func (p *pfSenseProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewDNSResolverDomainOverridesDataSource,
-		NewDNSResolverHostOverridesDataSource,
-		NewFirewallAliasesDataSource,
-		NewSystemVersionDataSource,
+		dnsresolver.NewDomainOverridesDataSource,
+		dnsresolver.NewHostOverridesDataSource,
+		firewall.NewAliasesDataSource,
+		system.NewVersionDataSource,
 	}
 }
 
 func (p *pfSenseProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewDNSResolverApplyResource,
-		NewDNSResolverConfigFileResource,
-		NewDNSResolverDomainOverrideResource,
-		NewDNSResolverHostOverrideResource,
-		NewFirewallFilterReloadResource,
-		NewFirewallIPAliasResource,
+		dnsresolver.NewApplyResource,
+		dnsresolver.NewConfigFileResource,
+		dnsresolver.NewDomainOverrideResource,
+		dnsresolver.NewHostOverrideResource,
+		firewall.NewFilterReloadResource,
+		firewall.NewIPAliasResource,
 	}
 }

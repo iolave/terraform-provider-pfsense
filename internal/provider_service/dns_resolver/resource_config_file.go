@@ -1,4 +1,4 @@
-package provider
+package dnsresolver
 
 import (
 	"context"
@@ -12,34 +12,35 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	providerutil "github.com/marshallford/terraform-provider-pfsense/internal/provider_util"
 	"github.com/marshallford/terraform-provider-pfsense/pkg/pfsense"
 )
 
-var _ resource.Resource = &DNSResolverConfigFileResource{}
-var _ resource.ResourceWithImportState = &DNSResolverConfigFileResource{}
+var _ resource.Resource = &ConfigFileResource{}
+var _ resource.ResourceWithImportState = &ConfigFileResource{}
 
-func NewDNSResolverConfigFileResource() resource.Resource {
-	return &DNSResolverConfigFileResource{}
+func NewConfigFileResource() resource.Resource {
+	return &ConfigFileResource{}
 }
 
-type DNSResolverConfigFileResource struct {
+type ConfigFileResource struct {
 	client *pfsense.Client
 }
 
-type DNSResolverConfigFileResourceModel struct {
+type ConfigFileResourceModel struct {
 	Name    types.String `tfsdk:"name"`
 	Content types.String `tfsdk:"content"`
 	Apply   types.Bool   `tfsdk:"apply"`
 }
 
-func (r *DNSResolverConfigFileResourceModel) SetFromValue(ctx context.Context, configFile *pfsense.ConfigFile) diag.Diagnostics {
+func (r *ConfigFileResourceModel) SetFromValue(ctx context.Context, configFile *pfsense.ConfigFile) diag.Diagnostics {
 	r.Name = types.StringValue(configFile.Name)
 	r.Content = types.StringValue(configFile.Content)
 
 	return nil
 }
 
-func (r DNSResolverConfigFileResourceModel) Value(ctx context.Context) (*pfsense.ConfigFile, diag.Diagnostics) {
+func (r ConfigFileResourceModel) Value(ctx context.Context) (*pfsense.ConfigFile, diag.Diagnostics) {
 	var configFile pfsense.ConfigFile
 	var err error
 	var diags diag.Diagnostics
@@ -65,11 +66,11 @@ func (r DNSResolverConfigFileResourceModel) Value(ctx context.Context) (*pfsense
 	return &configFile, diags
 }
 
-func (r *DNSResolverConfigFileResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *ConfigFileResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = fmt.Sprintf("%s_dnsresolver_configfile", req.ProviderTypeName)
 }
 
-func (r *DNSResolverConfigFileResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *ConfigFileResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description:         "DNS resolver (Unbound) config file. Prerequisite: Must add the directive 'include-toplevel: /var/unbound/conf.d/*' to the DNS resolver custom options input. Use with caution, content is not checked/validated.",
 		MarkdownDescription: "DNS resolver (Unbound) [config file](https://man.freebsd.org/cgi/man.cgi?unbound.conf). **Prerequisite**: Must add the directive `include-toplevel: /var/unbound/conf.d/*` to the DNS resolver custom options input. **Use with caution**, content is not checked/validated.",
@@ -97,8 +98,8 @@ func (r *DNSResolverConfigFileResource) Schema(ctx context.Context, req resource
 	}
 }
 
-func (r *DNSResolverConfigFileResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	client, ok := configureResourceClient(req, resp)
+func (r *ConfigFileResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	client, ok := providerutil.ConfigureResourceClient(req, resp)
 	if !ok {
 		return
 	}
@@ -106,8 +107,8 @@ func (r *DNSResolverConfigFileResource) Configure(ctx context.Context, req resou
 	r.client = client
 }
 
-func (r *DNSResolverConfigFileResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data *DNSResolverConfigFileResourceModel
+func (r *ConfigFileResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data *ConfigFileResourceModel
 	var diags diag.Diagnostics
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
@@ -122,7 +123,7 @@ func (r *DNSResolverConfigFileResource) Create(ctx context.Context, req resource
 	}
 
 	configFile, err := r.client.CreateDNSResolverConfigFile(ctx, *configFileReq)
-	if addError(&resp.Diagnostics, "Error creating config file", err) {
+	if providerutil.AddError(&resp.Diagnostics, "Error creating config file", err) {
 		return
 	}
 
@@ -136,14 +137,14 @@ func (r *DNSResolverConfigFileResource) Create(ctx context.Context, req resource
 
 	if data.Apply.ValueBool() {
 		err = r.client.ApplyDNSResolverChanges(ctx)
-		if addError(&resp.Diagnostics, "Error applying config file", err) {
+		if providerutil.AddError(&resp.Diagnostics, "Error applying config file", err) {
 			return
 		}
 	}
 }
 
-func (r *DNSResolverConfigFileResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data *DNSResolverConfigFileResourceModel
+func (r *ConfigFileResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data *ConfigFileResourceModel
 	var diags diag.Diagnostics
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
@@ -152,7 +153,7 @@ func (r *DNSResolverConfigFileResource) Read(ctx context.Context, req resource.R
 	}
 
 	configFile, err := r.client.GetDNSResolverConfigFile(ctx, data.Name.ValueString())
-	if addError(&resp.Diagnostics, "Error reading config file", err) {
+	if providerutil.AddError(&resp.Diagnostics, "Error reading config file", err) {
 		return
 	}
 
@@ -165,8 +166,8 @@ func (r *DNSResolverConfigFileResource) Read(ctx context.Context, req resource.R
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *DNSResolverConfigFileResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data *DNSResolverConfigFileResourceModel
+func (r *ConfigFileResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data *ConfigFileResourceModel
 	var diags diag.Diagnostics
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
@@ -185,7 +186,7 @@ func (r *DNSResolverConfigFileResource) Update(ctx context.Context, req resource
 	}
 
 	configFile, err := r.client.UpdateDNSResolverConfigFile(ctx, *configFileReq)
-	if addError(&resp.Diagnostics, "Error updating config file", err) {
+	if providerutil.AddError(&resp.Diagnostics, "Error updating config file", err) {
 		return
 	}
 
@@ -199,14 +200,14 @@ func (r *DNSResolverConfigFileResource) Update(ctx context.Context, req resource
 
 	if data.Apply.ValueBool() {
 		err = r.client.ApplyDNSResolverChanges(ctx)
-		if addError(&resp.Diagnostics, "Error applying config file", err) {
+		if providerutil.AddError(&resp.Diagnostics, "Error applying config file", err) {
 			return
 		}
 	}
 }
 
-func (r *DNSResolverConfigFileResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data *DNSResolverConfigFileResourceModel
+func (r *ConfigFileResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data *ConfigFileResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
 	if resp.Diagnostics.HasError() {
@@ -214,7 +215,7 @@ func (r *DNSResolverConfigFileResource) Delete(ctx context.Context, req resource
 	}
 
 	err := r.client.DeleteDNSResolverConfigFile(ctx, data.Name.ValueString())
-	if addError(&resp.Diagnostics, "Error deleting config file", err) {
+	if providerutil.AddError(&resp.Diagnostics, "Error deleting config file", err) {
 		return
 	}
 
@@ -222,12 +223,12 @@ func (r *DNSResolverConfigFileResource) Delete(ctx context.Context, req resource
 
 	if data.Apply.ValueBool() {
 		err = r.client.ApplyDNSResolverChanges(ctx)
-		if addError(&resp.Diagnostics, "Error applying config file", err) {
+		if providerutil.AddError(&resp.Diagnostics, "Error applying config file", err) {
 			return
 		}
 	}
 }
 
-func (r *DNSResolverConfigFileResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *ConfigFileResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("name"), req, resp)
 }

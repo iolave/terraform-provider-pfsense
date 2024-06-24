@@ -1,4 +1,4 @@
-package provider
+package dnsresolver
 
 import (
 	"context"
@@ -11,29 +11,28 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	providerutil "github.com/marshallford/terraform-provider-pfsense/internal/provider_util"
 	"github.com/marshallford/terraform-provider-pfsense/pkg/pfsense"
 )
 
-var _ resource.Resource = &DNSResolverApplyResource{}
-
-func NewDNSResolverApplyResource() resource.Resource {
-	return &DNSResolverApplyResource{}
-}
-
-type DNSResolverApplyResource struct {
+type applyResource struct {
 	client *pfsense.Client
 }
 
-type DNSResolverApplyResourceModel struct {
+func NewApplyResource() resource.Resource {
+	return &applyResource{}
+}
+
+type ApplyResourceModel struct {
 	ID          types.String `tfsdk:"id"`
 	LastUpdated types.String `tfsdk:"last_updated"`
 }
 
-func (r *DNSResolverApplyResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *applyResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = fmt.Sprintf("%s_dnsresolver_apply", req.ProviderTypeName)
 }
 
-func (r *DNSResolverApplyResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *applyResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "Apply DNS resolver configuration.",
 		Attributes: map[string]schema.Attribute{
@@ -55,8 +54,8 @@ func (r *DNSResolverApplyResource) Schema(ctx context.Context, req resource.Sche
 	}
 }
 
-func (r *DNSResolverApplyResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	client, ok := configureResourceClient(req, resp)
+func (r *applyResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	client, ok := providerutil.ConfigureResourceClient(req, resp)
 	if !ok {
 		return
 	}
@@ -64,8 +63,8 @@ func (r *DNSResolverApplyResource) Configure(ctx context.Context, req resource.C
 	r.client = client
 }
 
-func (r *DNSResolverApplyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data *DNSResolverApplyResourceModel
+func (r *applyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data *ApplyResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
 	if resp.Diagnostics.HasError() {
@@ -73,7 +72,7 @@ func (r *DNSResolverApplyResource) Create(ctx context.Context, req resource.Crea
 	}
 
 	err := r.client.ApplyDNSResolverChanges(ctx)
-	if addError(&resp.Diagnostics, "Error applying DNS resolver changes", err) {
+	if providerutil.AddError(&resp.Diagnostics, "Error applying DNS resolver changes", err) {
 		return
 	}
 
@@ -83,11 +82,11 @@ func (r *DNSResolverApplyResource) Create(ctx context.Context, req resource.Crea
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *DNSResolverApplyResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+func (r *applyResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 }
 
-func (r *DNSResolverApplyResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (r *applyResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 }
 
-func (r *DNSResolverApplyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (r *applyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 }
